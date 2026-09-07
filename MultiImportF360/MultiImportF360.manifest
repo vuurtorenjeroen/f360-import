@@ -6,9 +6,9 @@
   "author": "Portland CNC",
   "company": "Portland CNC",
   "description": {
-    "": "Bulk import STEP, IGES, SAT, and SMT files into Fusion 360 with automatic component naming\n\nSource: https://github.com/jbrewlet/f360-import"
+    "": "Bulk import STEP, IGES, SAT, SMT, and 3MF files into Fusion 360 with automatic component naming\n\nSource: https://github.com/jbrewlet/f360-import"
   },
-  "version": "0.2",
+  "version": "0.3",
   "runOnStartup": false,
   "supportedOS": "windows|mac",
   "editEnabled": true,

@@ -1,7 +1,7 @@
 # Autodesk Fusion Batch File Importer v.2
 
 **This add-in makes for ⚡ basically instant ⚡ direct bulk file imports to Fusion.**
-- Bulk import of `STEP`, `IGES`, `SAT`, and `SMT` files
+- Bulk import of `STEP`, `IGES`, `SAT`, `SMT`, and `3MF` files
 - Creates a **component** for each imported file, named after the file
 - **Reports** successful and failed imports via message box
 - Lists failed files for troubleshooting
@@ -35,7 +35,7 @@ Extract the ZIP file and place the `MultiImportF360` folder in a shared location
 ## How to Use
 
 1. Click "Multi-Import Files" in the Tools toolbar, or go to `Tools > Multi-Import Files`
-2. Select one or multiple supported files (STEP, IGES, SAT, or SMT) from the file picker
+2. Select one or multiple supported files (STEP, IGES, SAT, SMT, or 3MF) from the file picker
 3. Files will import automatically
 4. Review the message box for import results
 
@@ -50,7 +50,10 @@ Extract the ZIP file and place the `MultiImportF360` folder in a shared location
 
 ## Changelog
 
-### v.2 (Current)
+### v.2.1 (Current)
+- Added support for 3MF files, imported as mesh bodies
+
+### v.2
 - Converted from script to Add-in
 - Always available in Tools toolbar and menu
 - Can create custom keyboard shortcuts

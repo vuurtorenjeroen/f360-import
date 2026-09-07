@@ -1,6 +1,6 @@
 """
 Multi-Import F360
-Bulk import STEP, IGES, SAT, and SMT files into Fusion 360
+Bulk import STEP, IGES, SAT, SMT, and 3MF files into Fusion 360
 
 Created by Portland CNC
 URL: https://pdxcnc.com
@@ -12,6 +12,42 @@ import adsk.core
 import adsk.fusion
 import traceback
 import os
+
+
+def importMesh3mf(design, rootComp, filename, componentName):
+    """Import a 3MF file as a mesh body, placed into its own new component."""
+    meshUnitsByAbbrev = {
+        'mm': adsk.fusion.MeshUnits.MillimeterMeshUnit,
+        'cm': adsk.fusion.MeshUnits.CentimeterMeshUnit,
+        'm': adsk.fusion.MeshUnits.MeterMeshUnit,
+        'in': adsk.fusion.MeshUnits.InchMeshUnit,
+        'ft': adsk.fusion.MeshUnits.FootMeshUnit,
+    }
+    meshUnits = meshUnitsByAbbrev.get(
+        design.unitsManager.defaultLengthUnits,
+        adsk.fusion.MeshUnits.MillimeterMeshUnit
+    )
+
+    occ = rootComp.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+    targetComp = occ.component
+
+    try:
+        if design.designType == adsk.fusion.DesignTypes.ParametricDesignType:
+            baseFeature = targetComp.features.baseFeatures.add()
+            baseFeature.startEdit()
+            meshBodies = targetComp.meshBodies.add(filename, meshUnits, baseFeature)
+            baseFeature.finishEdit()
+        else:
+            meshBodies = targetComp.meshBodies.add(filename, meshUnits)
+
+        if not meshBodies or meshBodies.count == 0:
+            raise RuntimeError(f'Fusion could not create a mesh body from {os.path.basename(filename)}')
+    except Exception:
+        # Clean up the empty component created for this failed import
+        occ.deleteMe()
+        raise
+
+    targetComp.name = componentName
 
 
 class MultiImportCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
@@ -57,7 +93,7 @@ class MultiImportCommandExecuteHandler(adsk.core.CommandEventHandler):
             # Create a file dialog to select supported files
             fileDialog = ui.createFileDialog()
             fileDialog.title = 'Select Files to Import'
-            fileDialog.filter = 'All Supported (*.stp; *.step; *.igs; *.iges; *.sat; *.smt; *.smb);;STEP Files (*.stp; *.step);;IGES Files (*.igs; *.iges);;SAT Files (*.sat);;SMT Files (*.smt; *.smb)'
+            fileDialog.filter = 'All Supported (*.stp; *.step; *.igs; *.iges; *.sat; *.smt; *.smb; *.3mf);;STEP Files (*.stp; *.step);;IGES Files (*.igs; *.iges);;SAT Files (*.sat);;SMT Files (*.smt; *.smb);;3MF Files (*.3mf)'
             fileDialog.filterIndex = 0
             fileDialog.isMultiSelectEnabled = True
             dialogResult = fileDialog.showOpen()
@@ -71,29 +107,34 @@ class MultiImportCommandExecuteHandler(adsk.core.CommandEventHandler):
                         
                         # Get file extension to determine import method
                         fileExt = os.path.splitext(filename)[1].lower()
-                        
-                        # Import the file directly into the root component using appropriate method
-                        importOptions = None
-                        if fileExt in ['.stp', '.step']:
-                            importOptions = app.importManager.createSTEPImportOptions(filename)
-                        elif fileExt in ['.igs', '.iges']:
-                            importOptions = app.importManager.createIGESImportOptions(filename)
-                        elif fileExt == '.sat':
-                            importOptions = app.importManager.createSATImportOptions(filename)
-                        elif fileExt in ['.smt', '.smb']:
-                            importOptions = app.importManager.createSMTImportOptions(filename)
-                        else:
-                            # Unsupported file type
-                            fail_count += 1
-                            failed_files.append(os.path.basename(filename))
-                            print(f'Unsupported file type: {os.path.basename(filename)}')
-                            continue
-                        
-                        app.importManager.importToTarget(importOptions, rootComp)
 
-                        # Find the last created occurrence and rename it
-                        lastOcc = rootComp.occurrences[-1]
-                        lastOcc.component.name = componentName
+                        if fileExt == '.3mf':
+                            # 3MF files are imported as a mesh body rather than through
+                            # the ImportManager, so they need their own new component.
+                            importMesh3mf(design, rootComp, filename, componentName)
+                        else:
+                            # Import the file directly into the root component using appropriate method
+                            importOptions = None
+                            if fileExt in ['.stp', '.step']:
+                                importOptions = app.importManager.createSTEPImportOptions(filename)
+                            elif fileExt in ['.igs', '.iges']:
+                                importOptions = app.importManager.createIGESImportOptions(filename)
+                            elif fileExt == '.sat':
+                                importOptions = app.importManager.createSATImportOptions(filename)
+                            elif fileExt in ['.smt', '.smb']:
+                                importOptions = app.importManager.createSMTImportOptions(filename)
+                            else:
+                                # Unsupported file type
+                                fail_count += 1
+                                failed_files.append(os.path.basename(filename))
+                                print(f'Unsupported file type: {os.path.basename(filename)}')
+                                continue
+
+                            app.importManager.importToTarget(importOptions, rootComp)
+
+                            # Find the last created occurrence and rename it
+                            lastOcc = rootComp.occurrences[-1]
+                            lastOcc.component.name = componentName
 
                         # Increment successful import count
                         success_count += 1
@@ -165,7 +206,7 @@ def run(context):
         cmdDef = ui.commandDefinitions.addButtonDefinition(
             'MultiImportCommand',
             'Multi-Import Files',
-            'Bulk import STEP, IGES, SAT, and SMT files.\n\nClick to open file browser, then multi-select files for near-instant import.\n\nMade by PDX CNC',
+            'Bulk import STEP, IGES, SAT, SMT, and 3MF files.\n\nClick to open file browser, then multi-select files for near-instant import.\n\nMade by PDX CNC',
             iconFolder
         )
         
